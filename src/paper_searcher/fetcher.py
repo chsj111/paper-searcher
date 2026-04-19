@@ -1,25 +1,31 @@
 import arxiv
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 
 def fetch_papers(categories: list[str], target_date: date | None = None,
                  max_results: int = 500) -> list[dict]:
     day = target_date or date.today()
-    start = day.strftime("%Y%m%d0000")
-    end = day.strftime("%Y%m%d2359")
 
     cat_query = " OR ".join(f"cat:{c}" for c in categories)
-    query = f"({cat_query}) AND submittedDate:[{start} TO {end}]"
 
     client = arxiv.Client(page_size=100, delay_seconds=3.0, num_retries=3)
     search = arxiv.Search(
-        query=query,
+        query=cat_query,
         max_results=max_results,
         sort_by=arxiv.SortCriterion.SubmittedDate,
     )
 
+    day_start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
+    day_end = day_start + timedelta(days=1)
+
     papers = []
     for result in client.results(search):
+        pub = result.published
+        if pub < day_start:
+            break
+        if pub >= day_end:
+            continue
+
         papers.append({
             "id": result.entry_id,
             "title": result.title,
