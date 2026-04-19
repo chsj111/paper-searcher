@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "paper-searcher"
+version = "0.1.0"
+description = "Daily arXiv paper fetcher with LLM-powered summarization"
+requires-python = ">=3.11"
+dependencies = [
+    "arxiv>=2.1.0",
+    "requests>=2.31.0",
+    "pyyaml>=6.0",
+    "streamlit>=1.30.0",
+    "tqdm>=4.66.0",
+]
+
+[project.scripts]
+paper-searcher = "paper_searcher.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

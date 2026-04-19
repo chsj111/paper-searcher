@@ -1,0 +1,47 @@
+name: Daily Paper Fetch
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # UTC 2:00 = 北京时间 10:00
+  workflow_dispatch:
+    inputs:
+      categories:
+        description: 'arXiv categories (comma-separated)'
+        required: false
+        default: 'cs.AI'
+      query:
+        description: 'Filter query for LLM summary'
+        required: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily fetch
+        env:
+          PAPER_SEARCHER_LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          CATS="${{ github.event.inputs.categories || 'cs.AI' }}"
+          QUERY="${{ github.event.inputs.query || '' }}"
+          CMD="python main.py daily --categories ${CATS//,/ }"
+          if [ -n "$QUERY" ]; then
+            CMD="$CMD --query \"$QUERY\""
+          fi
+          eval $CMD
+
+      - name: Commit reports
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet || git commit -m "Daily paper report $(date +%Y-%m-%d)"
+          git push
